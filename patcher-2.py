@@ -77,7 +77,6 @@ def systemspec():
 	global offset,period,bcet,wcet,jitter,tasktype,tasksetname,horizon,schedule,A,B,K,R,initstate,strategy, ntasks,nperiodic,nsporadic,jobs,idealtrace,maxdev
 	global lasso1,lasso2
 	global upperbound, lowerbound
-	offset=[0,0,0,0] # always set offsets to 0
 	
 	## edit the following lines for setting up the task specification
 	offset=[0,0,0] # always set offsets to 0
