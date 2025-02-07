@@ -14,7 +14,7 @@ PATCHER requires augmented, discretized control system specs as input. Example *
 The scripts "models.py", "example.py" and "controllers.py" are from https://github.com/Ratfink/ControlTimingSafety.jl , courtesy Shengjie Xu, Clara Hobbs and team.   
 
 # NOTES
-1) Outputs detailed messages at runtime. To suppress messages, comment out appropriate logging.info() calls in the code. 
+1) PATCHER outputs detailed messages at runtime. To suppress messages, comment out appropriate logging.info() calls in the code. 
 2) NP-RM scheduling policy and "hold-and-kill" missing control update policy is not yet tested.
 3) Analysis time is sensitive to number of jobs spawned ("horizon" value), number of tasks including  sporadic ones, number and size of control systems.
 
@@ -26,3 +26,7 @@ Control spec generation requires packages numpy, control.
 0) If required, discretize your (continuous) control system, with the "example.py" or "example-modified.py" script. The discretization timestep chosen forms the period for the corresponding task. To discretize, choose a model from "models.py", or enter new A,B,C,D matrices, and run *python3 example.py* after selecting the right model.
 
 1) Execute the PATCHER script with an optional timeout and time command, since the main loop in the script is designed to explore the full state space of patches, and might take long to terminate:    *timeout <15m> time python3 patcher-n.py*
+
+# LIMITATIONS
+1) PATCHER currently does not automatically increment the analysis horizon (e.g., by adding the LCM of periods to current horizon), it has to be done manually when PATCHER fails to synthesize a patch for the given horizon.
+2) PATCHER currently does not automatically adjust (increase) the initial state box bounds on discovering new control states during simulation. The init bounds have to be manually adjusted (increased), after examining PATCHER logs for simulations values. Refer to the paper on increasing init bounds. 
