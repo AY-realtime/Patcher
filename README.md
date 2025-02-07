@@ -23,7 +23,6 @@ PATCHER requires Python3, and packages Z3, itemgetter, combinations. Tested on U
 Control spec generation requires packages numpy, control.
 
 # HOW TO RUN
-0) If required, discretize your (continuous) control system, with the "example.py" script. The discretization timestep chosen forms the period for the corresponding task.
+0) If required, discretize your (continuous) control system, with the "example.py" or "example-modified.py" script. The discretization timestep chosen forms the period for the corresponding task. To discretize, choose a model from "models.py", or enter new A,B,C,D matrices, and run *python3 example.py* after selecting the right model.
 
-1) Execute the PATCHER script with an optional timeout and time command, since the main loop in the script is designed to explore the full state space of patches, and might take long to terminate: 
-timeout <15m> time python patcher-n.py
+1) Execute the PATCHER script with an optional timeout and time command, since the main loop in the script is designed to explore the full state space of patches, and might take long to terminate:    *timeout <15m> time python3 patcher-n.py*
