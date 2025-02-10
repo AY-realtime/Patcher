@@ -174,7 +174,7 @@ def controlsafetyproperty(whichmode):
 	smtsolver.add(safetyconstraints)
 	
 def guessdropset(dhat): # dhat = [[c1,c2],[c3,c4,c5]] : And(Or(And(c1),And(c2)),Or(And(c3)...))
-	logging.info('running DuessDropSet...') # dhat= '+str(dhat))
+	logging.info('running GuessDropSet...') # dhat= '+str(dhat))
 	smtsolver.push() # prepare for a guess call to Z3
 	controlsafetyproperty('guess') # insert safety constraints
 	if len(dhat)>1: smtsolver.add(And([d1 for d1 in dhat]))
