@@ -292,7 +292,7 @@ def flipper(cid,hm,ctrdev,cemodell): # returns list of must jobs
 			logging.info('violations for all dimensions: '+str(xsimviolations))
 			if not (True in xsimviolations[propviolation]): #  no violation for any dim
 			# ~ if not (True in [True in x for x in xsimviolations]):#[propviolation]): #  no violation anywhere
-				logging.info('flipping restored control safety')
+				#logging.info('flipping restored control safety')
 				for eachmiss in klentuple: 
 					mustj.append((cid,eachmiss)) #(hm[loc][0],hm[loc][1])) # pick each job from the critical subsequence 
 
