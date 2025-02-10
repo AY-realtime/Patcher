@@ -7,7 +7,8 @@ from operator import itemgetter
 from itertools import combinations
 
 def printtrace(tr,trmsg=''): 
-	logging.info(trmsg+' (t,j,r,s,e,d,chain,hit,drop): \n'+'\n'.join(str(i) for i in tr))
+	#logging.info(trmsg+' (t,j,r,s,e,d,chain,hit,drop): \n'+'\n'.join(str(i) for i in tr))
+	pass
 
 def printtraj(tr):
 	xval = []
@@ -21,7 +22,7 @@ def gethitsequence(tr):
 	for cid in range(len(A)):
 		for dimm in range(len(A[cid])):
 			tmp1 = [tr[x[cid][dimm][i]].numerator().as_long()/tr[x[cid][dimm][i]].denominator().as_long() for i in range(len(x[cid][dimm]))]
-			logging.info('control sys '+str(cid)+', dim '+str(dimm)+', trace: '+str(tmp1))
+			#logging.info('control sys '+str(cid)+', dim '+str(dimm)+', trace: '+str(tmp1))
 			if dimm==len(A[cid])-1: continue # do not check for violations for last dim i.e. u 
 			# ~ if not dimm==0: continue # do not check for violations other than 0th dim
 			violations = []
@@ -162,7 +163,7 @@ def controlsafetyproperty(whichmode):
 					safetyconstraints += [x[cid][dimm][jid] < lowerbound[cid][jid]] # lower bound
 	if whichmode == 'check': safetyconstraints = Or(safetyconstraints) # assert for violation
 	elif whichmode == 'guess': safetyconstraints = And([Not(sc) for sc in safetyconstraints]) # get some run
-	logging.info('constraints for '+whichmode+': '+str(safetyconstraints))
+	#logging.info('constraints for '+whichmode+': '+str(safetyconstraints))
 	smtsolver.add(safetyconstraints)
 	
 def guessdropset(dhat): # dhat = [[c1,c2],[c3,c4,c5]] : And(Or(And(c1),And(c2)),Or(And(c3)...))
@@ -179,7 +180,7 @@ def guessdropset(dhat): # dhat = [[c1,c2],[c3,c4,c5]] : And(Or(And(c1),And(c2)),
 	for cid in range(len(A)):
 		for dim in range(len(B[cid])):
 			safeguessrun = [witness[x[cid][dim][i]].numerator().as_long()/witness[x[cid][dim][i]].denominator().as_long() for i in range(len(x[cid][dim]))]
-			logging.info('sys '+str(cid)+', dim '+str(dim)+', safeguessrun: '+str(safeguessrun))
+			#logging.info('sys '+str(cid)+', dim '+str(dim)+', safeguessrun: '+str(safeguessrun))
 	tr=getsortedtrace(witness)
 	dset = [d[t1][j1] for (t1,j1,r1,s1,e1,d1,chain1,hit1,drop1) in tr if (drop1)]  # pick only drops
 	undropset = [d[t1][j1] for (t1,j1,r1,s1,e1,d1,chain1,hit1,drop1) in tr if not drop1]  # pick non-drops
@@ -267,7 +268,7 @@ def flipper(cid,hm,ctrdev,cemodell): # returns list of must jobs
 								xsimkplus1.append(Ax_k+Bu_k_hold_and_kill)
 						else: assert False, 'bug'
 				xsim.append(xsimkplus1) # all states computed
-			logging.info('simulating sys '+str(cid)+': '+str(xsim))
+			#logging.info('simulating sys '+str(cid)+': '+str(xsim))
 			
 			xsimviolations = []	 # identify violations, if any
 			for jid in range(len(xsim)): # for each state vector
