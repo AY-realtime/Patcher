@@ -7,7 +7,8 @@ from operator import itemgetter
 from itertools import combinations
 
 def printtrace(tr,trmsg=''): 
-	logging.info(trmsg+' (t,j,r,s,e,d,chain,hit,drop): \n'+'\n'.join(str(i) for i in tr))
+	#logging.info(trmsg+' (t,j,r,s,e,d,chain,hit,drop): \n'+'\n'.join(str(i) for i in tr))
+	pass
 
 def printtraj(tr):
 	xval = []
@@ -21,7 +22,7 @@ def gethitsequence(tr):
 	for cid in range(len(A)):
 		for dimm in range(len(A[cid])):
 			tmp1 = [tr[x[cid][dimm][i]].numerator().as_long()/tr[x[cid][dimm][i]].denominator().as_long() for i in range(len(x[cid][dimm]))]
-			logging.info('control sys '+str(cid)+', dim '+str(dimm)+', trace: '+str(tmp1))
+			#logging.info('control sys '+str(cid)+', dim '+str(dimm)+', trace: '+str(tmp1))
 			if dimm==len(A[cid])-1: continue # do not check for violations for last dim i.e. u 
 			# ~ if not dimm==0: continue # do not check for violations other than 0th dim
 			violations = []
@@ -169,11 +170,11 @@ def controlsafetyproperty(whichmode):
 					safetyconstraints += [x[cid][dimm][jid] < lowerbound[cid][jid]] # lower bound
 	if whichmode == 'check': safetyconstraints = Or(safetyconstraints) # assert for violation
 	elif whichmode == 'guess': safetyconstraints = And([Not(sc) for sc in safetyconstraints]) # get some run
-	logging.info('constraints for '+whichmode+': '+str(safetyconstraints))
+	#logging.info('constraints for '+whichmode+': '+str(safetyconstraints))
 	smtsolver.add(safetyconstraints)
 	
 def guessdropset(dhat): # dhat = [[c1,c2],[c3,c4,c5]] : And(Or(And(c1),And(c2)),Or(And(c3)...))
-	logging.info('running DuessDropSet... dhat= '+str(dhat))
+	logging.info('running DuessDropSet...') # dhat= '+str(dhat))
 	smtsolver.push() # prepare for a guess call to Z3
 	controlsafetyproperty('guess') # insert safety constraints
 	if len(dhat)>1: smtsolver.add(And([d1 for d1 in dhat]))
@@ -186,11 +187,11 @@ def guessdropset(dhat): # dhat = [[c1,c2],[c3,c4,c5]] : And(Or(And(c1),And(c2)),
 	for cid in range(len(A)):
 		for dim in range(len(B[cid])):
 			safeguessrun = [witness[x[cid][dim][i]].numerator().as_long()/witness[x[cid][dim][i]].denominator().as_long() for i in range(len(x[cid][dim]))]
-			logging.info('sys '+str(cid)+', dim '+str(dim)+', safeguessrun: '+str(safeguessrun))
+			#logging.info('sys '+str(cid)+', dim '+str(dim)+', safeguessrun: '+str(safeguessrun))
 	tr=getsortedtrace(witness)
 	dset = [d[t1][j1] for (t1,j1,r1,s1,e1,d1,chain1,hit1,drop1) in tr if (drop1)]  # pick only drops
 	undropset = [d[t1][j1] for (t1,j1,r1,s1,e1,d1,chain1,hit1,drop1) in tr if not drop1]  # pick non-drops
-	logging.info('GuessDropSet returned dropset = '+str(dset))
+	#logging.info('GuessDropSet returned dropset = '+str(dset))
 	smtsolver.pop() # restore context
 	return (dset,undropset) # 2 choices for drops set: drop+hit OR only drop
 
@@ -231,27 +232,27 @@ def workconservation(): # work conservation constraints
 
 
 def flipper(cid,hm,ctrdev,cemodell): # returns list of must jobs
-	logging.info('starting Flipper...')
+	#logging.info('starting Flipper...')
 	assert ((False,False) in hm) or (True in [i[1] for i in hm]), 'nothing to flip! for controller '+str(cid) # there should be atleast 1 miss or drop for flipping
 	mustj = [] # must/critical jobs
-	logging.info('hit/miss and drop sequence: '+str(hm))
+	#logging.info('hit/miss and drop sequence: '+str(hm))
 	propviolation = ctrdev.index(True) # get the 1st instance of safety violation
 	# ~ propviolation = len(ctrdev)-list(reversed(ctrdev)).index(True)-1 # get the last instance
-	logging.info('property violation index = '+str(propviolation))
+	#logging.info('property violation index = '+str(propviolation))
 	
 	allmisses = [i for (i,(hitt,dropp)) in enumerate(hm[:propviolation+1]) if ((not hitt) or dropp)] # pick all miss locations
 	assert allmisses, 'unexpected! no miss/drop detected before property violation location '+str(propviolation)+' for control system '+str(cid)
-	logging.info('indices of all deadline misses = '+str(allmisses))
+	#logging.info('indices of all deadline misses = '+str(allmisses))
 	
 	for klen in range(1,len(allmisses)+1): 
-		logging.info('flipping all '+str(klen)+'-len misses to hits and simulating...')
+		#logging.info('flipping all '+str(klen)+'-len misses to hits and simulating...')
 		klenlist = list(combinations(allmisses,klen))  # get all k-len subsequences
 		for klentuple in klenlist: # for each k-len subseq
-			logging.info('klentuple = '+str(klentuple))
+			#logging.info('klentuple = '+str(klentuple))
 			hmflip = copy.deepcopy(hm)
 			for eachmiss in klentuple: 
 				hmflip[eachmiss]=(True,False) # flipped miss->hit, drop->false i.e. 0->1 in the tuple
-			logging.info('flipped hit/miss seq: '+str(hmflip))
+			#logging.info('flipped hit/miss seq: '+str(hmflip))
 			
 			xsim = [] # store the states
 			xsim.append([cemodell[x[cid][d][0]].numerator().as_long()/cemodell[x[cid][d][0]].denominator().as_long() for d in range(len(B[cid]))]) # initial state
@@ -274,7 +275,7 @@ def flipper(cid,hm,ctrdev,cemodell): # returns list of must jobs
 								xsimkplus1.append(Ax_k+Bu_k_hold_and_kill)
 						else: assert False, 'bug'
 				xsim.append(xsimkplus1) # all states computed
-			logging.info('simulating sys '+str(cid)+': '+str(xsim))
+			#logging.info('simulating sys '+str(cid)+': '+str(xsim))
 			
 			xsimviolations = []	 # identify violations, if any
 			for jid in range(len(xsim)): # for each state vector
@@ -295,15 +296,15 @@ def flipper(cid,hm,ctrdev,cemodell): # returns list of must jobs
 			# ~ if xsim[(lasso1//period[cid])][0]>0: xsimviolations.append(xsim[(lasso2//period[cid])][0] > xsim[(lasso1//period[cid])][0]) # the last state, lasso2, check divergence
 			# ~ else: xsimviolations.append(xsim[(lasso2//period[cid])][0] < xsim[(lasso1//period[cid])][0])
 			assert len(xsimviolations)==len(xsim)
-			logging.info('violations for all dimensions: '+str(xsimviolations))
+			#logging.info('violations for all dimensions: '+str(xsimviolations))
 			if not (True in xsimviolations[propviolation]): #  no violation for any dim
 			# ~ if not (True in [True in x for x in xsimviolations]):#[propviolation]): #  no violation anywhere
-				logging.info('flipping restored control safety')
+				#logging.info('flipping restored control safety')
 				for eachmiss in klentuple: 
 					mustj.append((cid,eachmiss)) #(hm[loc][0],hm[loc][1])) # pick each job from the critical subsequence 
 
 		if mustj: 
-			logging.info('at k-len = '+str(klen)+', mustj = '+str(mustj))
+			#logging.info('at k-len = '+str(klen)+', mustj = '+str(mustj))
 			return mustj # we got must jobs at this k-level 
 	
 	assert False, 'empty mustj! for controller '+str(cid)+' after trying all k-len flips, exiting...' 
@@ -327,7 +328,7 @@ def old_flipper(cid,hm,ctrdev,cemodell):
 		if (not (xsim[propviolation][0]-idealtrace[cid][propviolation]>maxdev[cid])) and (not (idealtrace[cid][propviolation]>maxdev[cid]-xsim[propviolation][0]>maxdev[cid])):
 			mustj.append((cid,loc)) #(hm[loc][0],hm[loc][1])) # pick the critical job
 
-	logging.info('mustj = '+str(mustj))
+	#logging.info('mustj = '+str(mustj))
 	assert mustj, 'empty mustj! for controller '+str(cid)+', 1-flip did not yield property safety, exiting...' 
 	return mustj
 
@@ -354,13 +355,13 @@ def closure(mustjobs,cemodel):
 			if foundoverlap: break # iterate all over again from while
 		if not foundoverlap: 
 			dropcandidates = mayset.difference(maysetcopy)
-			logging.info('dropcandidates = '+str([(i[0],i[1]) for i in dropcandidates]))
+			#logging.info('dropcandidates = '+str([(i[0],i[1]) for i in dropcandidates]))
 			
 			tmp1,tmp2 = list(dropcandidates), list(Mminus)
 			tmp3 = [d[i[0]][i[1]] for i in tmp1] + [Not(d[i[0]][i[1]]) for i in tmp2]
 			if len(tmp3) > 1: tmp3 = Or(tmp3)
 			elif len(tmp3)==1: tmp3 = tmp3[0]
-			logging.info('closure OR clause ='+str(tmp3))
+			#logging.info('closure OR clause ='+str(tmp3))
 			return tmp3
 
 # main starts
