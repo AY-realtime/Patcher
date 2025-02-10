@@ -158,6 +158,7 @@ def systemspec():
 
 def controlsafetyproperty(whichmode):
 	safetyconstraints = []
+	my_resolution = 0.0001
 	for cid in range(len(A)): # for each controller
 		for dimm in range(len(A[cid])-1): # for each dimension except the last one, which is u
 			for jid in range(1,len(x[cid][0])):
@@ -169,8 +170,8 @@ def controlsafetyproperty(whichmode):
 					safetyconstraints += [x[cid][dimm][(lasso2//period[cid])]>initstate[cid][dimm][1], x[cid][dimm][(lasso2//period[cid])]<initstate[cid][dimm][0]]
 					# ~ else: pass
 				elif dimm==0: # safety bounds applicable only for 0th dimension
-					safetyconstraints += [x[cid][dimm][jid] > upperbound[cid][jid]] # upper bound violation
-					safetyconstraints += [x[cid][dimm][jid] < lowerbound[cid][jid]] # lower bound
+					safetyconstraints += [x[cid][dimm][jid] > upperbound[cid][jid] + my_resolution] # upper bound violation
+					safetyconstraints += [x[cid][dimm][jid] < lowerbound[cid][jid] - my_resolution] # lower bound
 	if whichmode == 'check': safetyconstraints = Or(safetyconstraints) # assert for violation
 	elif whichmode == 'guess': safetyconstraints = And([Not(sc) for sc in safetyconstraints]) # get some run
 	#logging.info('constraints for '+whichmode+': '+str(safetyconstraints))
