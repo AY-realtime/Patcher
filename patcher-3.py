@@ -167,7 +167,7 @@ def controlsafetyproperty(whichmode):
 	smtsolver.add(safetyconstraints)
 	
 def guessdropset(dhat): # dhat = [[c1,c2],[c3,c4,c5]] : And(Or(And(c1),And(c2)),Or(And(c3)...))
-	logging.info('running DuessDropSet... dhat= '+str(dhat))
+	logging.info('running GuessDropSet...') #dhat= '+str(dhat))
 	smtsolver.push() # prepare for a guess call to Z3
 	controlsafetyproperty('guess') # insert safety constraints
 	if len(dhat)>1: smtsolver.add(And([d1 for d1 in dhat]))
@@ -238,14 +238,14 @@ def flipper(cid,hm,ctrdev,cemodell): # returns list of must jobs
 	logging.info('indices of all deadline misses = '+str(allmisses))
 	
 	for klen in range(1,len(allmisses)+1): 
-		logging.info('flipping all '+str(klen)+'-len misses to hits and simulating...')
+		#logging.info('flipping all '+str(klen)+'-len misses to hits and simulating...')
 		klenlist = list(combinations(allmisses,klen))  # get all k-len subsequences
 		for klentuple in klenlist: # for each k-len subseq
 			logging.info('klentuple = '+str(klentuple))
 			hmflip = copy.deepcopy(hm)
 			for eachmiss in klentuple: 
 				hmflip[eachmiss]=(True,False) # flipped miss->hit, drop->false i.e. 0->1 in the tuple
-			logging.info('flipped hit/miss seq: '+str(hmflip))
+			#logging.info('flipped hit/miss seq: '+str(hmflip))
 			
 			xsim = [] # store the states
 			xsim.append([cemodell[x[cid][d][0]].numerator().as_long()/cemodell[x[cid][d][0]].denominator().as_long() for d in range(len(B[cid]))]) # initial state
