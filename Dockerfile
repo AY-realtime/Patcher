@@ -12,6 +12,3 @@ RUN pip3 install --no-cache-dir control
 WORKDIR /app
 
 COPY *.py ./
-
-ENTRYPOINT ["python3"]
-CMD ["patcher-1.py"]  # Default script if no argument is provided
