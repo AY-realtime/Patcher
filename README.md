@@ -19,8 +19,8 @@ The scripts "models.py", "example.py" and "controllers.py" are from https://gith
 3) Analysis time is sensitive to number of jobs spawned ("horizon" value), number of tasks including  sporadic ones, number and size of control systems.
 
 # INSTALLATION & DEPENDENCIES
-PATCHER requires Python3, and packages Z3, itemgetter, combinations. Tested on Ubuntu 22.04. 
-Control spec generation requires packages numpy, control.
+PATCHER requires Python3, and package z3 (to install z3, run *pip3 install z3-solver*). Tested on Ubuntu 22.04. 
+Control spec generation (optional step) requires packages numpy, control.
 
 # HOW TO RUN
 0) If required, discretize your (continuous) control system, with the "example.py" or "example-modified.py" script. The discretization timestep chosen forms the period for the corresponding task. To discretize, choose a model from "models.py", or enter new A,B,C,D matrices, and run *python3 example.py* after selecting the right model.
