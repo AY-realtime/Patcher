@@ -7,7 +7,8 @@ from operator import itemgetter
 from itertools import combinations
 
 def printtrace(tr,trmsg=''): 
-	#logging.info(trmsg+' (t,j,r,s,e,d,chain,hit,drop): \n'+'\n'.join(str(i) for i in tr))
+	# ~ logging.info(trmsg+' (t,j,r,s,e,d,chain,hit,drop): \n'+'\n'.join(str(i) for i in tr))
+	logging.info(trmsg+' (task id, job id, release, start, end, deadline): \n'+'\n'.join(str(i[:-3]) for i in tr))
 	pass
 
 def printtraj(tr):
@@ -22,7 +23,7 @@ def gethitsequence(tr):
 	for cid in range(len(A)):
 		for dimm in range(len(A[cid])):
 			tmp1 = [tr[x[cid][dimm][i]].numerator().as_long()/tr[x[cid][dimm][i]].denominator().as_long() for i in range(len(x[cid][dimm]))]
-			#logging.info('control sys '+str(cid)+', dim '+str(dimm)+', trace: '+str(tmp1))
+			logging.info('control sys '+str(cid)+', dim '+str(dimm)+', trace: '+str(tmp1))
 			if dimm==len(A[cid])-1: continue # do not check for violations for last dim i.e. u 
 			# ~ if not dimm==0: continue # do not check for violations other than 0th dim
 			violations = []
@@ -40,7 +41,7 @@ def gethitsequence(tr):
 				taskrun = getsortedtrace(tr)
 				hm = [(hit1,drop1) for (t1,j1,r1,s1,e1,d1,chain1,hit1,drop1) in taskrun if t1==cid] # extract hit/miss seq for the controller 
 				return (cid,hm,violations)
-	assert False, 'unexpected, no violation found for any trace!'		
+	assert False, 'unexpected, no violation found for any trace! This is due to conversion from infinite-precision SMT real to Python floating-point number, consider increasing my_resolution variable value by a small amount! quitting...'		
 
 def getsortedtrace(tr):
 	trace = []
@@ -85,7 +86,7 @@ def systemspec():
 	bcet,wcet=[50,50],[80,80] # 
 	jitter=[0,0]
 	tasktype=['P','P'] # no sporadic
-	tasksetname = 'motivating'
+	tasksetname = 'Motivating Example from ICCPS-2025-paper'
 	schedule = 'np-edf' # 'np-rm'
 	lasso1 = 0
 	lasso2 = 7*150
@@ -229,20 +230,21 @@ def flipper(cid,hm,ctrdev,cemodell): # returns list of must jobs
 	logging.info('starting Flipper...')
 	assert ((False,False) in hm) or (True in [i[1] for i in hm]), 'nothing to flip! for controller '+str(cid) # there should be atleast 1 miss or drop for flipping
 	mustj = [] # must/critical jobs
-	logging.info('hit/miss and drop sequence: '+str(hm))
+	# ~ logging.info('hit/miss and drop sequence: '+str(hm))
 	propviolation = ctrdev.index(True) # get the 1st instance of safety violation
 	# ~ propviolation = len(ctrdev)-list(reversed(ctrdev)).index(True)-1 # get the last instance
-	logging.info('property violation index = '+str(propviolation))
+	# ~ logging.info('property violation index = '+str(propviolation))
+	logging.info('earliest control safety violation at step = '+str(propviolation))
 	
 	allmisses = [i for (i,(hitt,dropp)) in enumerate(hm[:propviolation+1]) if ((not hitt) or dropp)] # pick all miss locations
 	assert allmisses, 'unexpected! no miss/drop detected before property violation location '+str(propviolation)+' for control system '+str(cid)
-	logging.info('indices of all deadline misses = '+str(allmisses))
+	# ~ logging.info('indices of all deadline misses = '+str(allmisses))
 	
 	for klen in range(1,len(allmisses)+1): 
-		#logging.info('flipping all '+str(klen)+'-len misses to hits and simulating...')
+		logging.info('flipping all '+str(klen)+'-len misses to hits and simulating...')
 		klenlist = list(combinations(allmisses,klen))  # get all k-len subsequences
 		for klentuple in klenlist: # for each k-len subseq
-			logging.info('klentuple = '+str(klentuple))
+			# ~ logging.info('klentuple = '+str(klentuple))
 			hmflip = copy.deepcopy(hm)
 			for eachmiss in klentuple: 
 				hmflip[eachmiss]=(True,False) # flipped miss->hit, drop->false i.e. 0->1 in the tuple
@@ -290,10 +292,10 @@ def flipper(cid,hm,ctrdev,cemodell): # returns list of must jobs
 			# ~ if xsim[(lasso1//period[cid])][0]>0: xsimviolations.append(xsim[(lasso2//period[cid])][0] > xsim[(lasso1//period[cid])][0]) # the last state, lasso2, check divergence
 			# ~ else: xsimviolations.append(xsim[(lasso2//period[cid])][0] < xsim[(lasso1//period[cid])][0])
 			assert len(xsimviolations)==len(xsim)
-			logging.info('violations for all dimensions: '+str(xsimviolations))
+			# ~ logging.info('violations for all dimensions: '+str(xsimviolations))
 			if not (True in xsimviolations[propviolation]): #  no violation for any dim
 			# ~ if not (True in [True in x for x in xsimviolations]):#[propviolation]): #  no violation anywhere
-				#logging.info('flipping restored control safety')
+				# ~ logging.info('flipping restored control safety')
 				for eachmiss in klentuple: 
 					mustj.append((cid,eachmiss)) #(hm[loc][0],hm[loc][1])) # pick each job from the critical subsequence 
 
@@ -355,14 +357,14 @@ def closure(mustjobs,cemodel):
 			tmp3 = [d[i[0]][i[1]] for i in tmp1] + [Not(d[i[0]][i[1]]) for i in tmp2]
 			if len(tmp3) > 1: tmp3 = Or(tmp3)
 			elif len(tmp3)==1: tmp3 = tmp3[0]
-			logging.info('closure OR clause ='+str(tmp3))
+			# ~ logging.info('closure OR clause ='+str(tmp3))
 			return tmp3
 
 # main starts
 logging.basicConfig(format='%(asctime)s %(levelname)-5s: %(message)s',level='INFO',datefmt='%H:%M:%S')
 logging.info('starting PATCHER: scheduler patch synthesis tool, ver 0.1')
 systemspec() # load the system
-logging.info('found '+str(len(period))+' tasks, '+str(sum(jobs))+' jobs')
+logging.info('Taskset: '+tasksetname+', found '+str(len(period))+' tasks, '+str(sum(jobs))+' jobs')
 smtsolver=Solver() # instantiate the solver
 set_option(rational_to_decimal=True)
 ## change the solver precision as required
