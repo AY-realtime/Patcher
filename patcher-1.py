@@ -7,8 +7,9 @@ from operator import itemgetter
 from itertools import combinations
 
 def printtrace(tr,trmsg=''): 
-	#logging.info(trmsg+' (t,j,r,s,e,d,chain,hit,drop): \n'+'\n'.join(str(i) for i in tr))
+	logging.info(trmsg+' (task id, job id, release, start, end, deadline): \n'+'\n'.join(str(i[:-3]) for i in tr))
 	pass
+	#logging.info(trmsg+' (t,j,r,s,e,d,chain,hit,drop): \n'+'\n'.join(str(i) for i in tr))
 
 def printtraj(tr):
 	xval = []
@@ -22,7 +23,7 @@ def gethitsequence(tr):
 	for cid in range(len(A)):
 		for dimm in range(len(A[cid])):
 			tmp1 = [tr[x[cid][dimm][i]].numerator().as_long()/tr[x[cid][dimm][i]].denominator().as_long() for i in range(len(x[cid][dimm]))]
-			#logging.info('control sys '+str(cid)+', dim '+str(dimm)+', trace: '+str(tmp1))
+			logging.info('control sys '+str(cid)+', dim '+str(dimm)+', trace: '+str(tmp1))
 			if dimm==len(A[cid])-1: continue # do not check for violations for last dim i.e. u 
 			# ~ if not dimm==0: continue # do not check for violations other than 0th dim
 			violations = []
@@ -40,7 +41,8 @@ def gethitsequence(tr):
 				taskrun = getsortedtrace(tr)
 				hm = [(hit1,drop1) for (t1,j1,r1,s1,e1,d1,chain1,hit1,drop1) in taskrun if t1==cid] # extract hit/miss seq for the controller 
 				return (cid,hm,violations)
-	assert False, 'unexpected, no violation found for any trace!'		
+	# ~ assert False, 'unexpected, no violation found for any trace!'		
+	assert False, 'unexpected, no violation found for any trace! This is due to conversion from infinite-precision SMT real to Python floating-point number, consider increasing my_resolution variable value by a small amount! quitting...'
 
 def getsortedtrace(tr):
 	trace = []
@@ -78,68 +80,71 @@ def systemspec():
 	global offset,period,bcet,wcet,jitter,tasktype,tasksetname,horizon,schedule,A,B,K,R,initstate,strategy, ntasks,nperiodic,nsporadic,jobs,idealtrace,maxdev
 	global lasso1,lasso2
 	global upperbound, lowerbound
-	offset=[0,0,0,0] # always set offsets to 0
 	
 	## edit the following lines for setting up the task specification
-	period=[200,100,100,200] # set up the task periods
-	bcet,wcet=[50,30,20,10],[100,55,50,30] # bcet, wcet values 
-	jitter=[2,1,1,0] # small percentage of period
-	tasktype=['P','P','P','S'] # either 'P' for periodic, or 'S' for sporadic
-	tasksetname = 'F1-RC-DC' # give a name to the task set
-	schedule = 'np-edf' # 'np-rm' # use only NP-EDF scheduling policy, for now
-	lasso1 = 0  # DO NOT change this
-	lasso2 = 4*200 # k*LCM # the analysis horizon, a multiple of LCM(periods). Higher value here will significantly impact analysis time as number of jobs spawned will be higher. 
-	horizon = lasso2 # DO NOT change this
-	## task specification setup ends
+	offset=[0,0,0] # always set offsets to 0
+	period=[100,100,100] # discretizations 
+	bcet,wcet=[10,20,10],[50,50,25] # wcet 
+	jitter=[0,0,0] # 10% of period
+	tasktype=['P','P','P'] # no sporadic
+	tasksetname = 'Case Study 1: EWat50ms-F1Tenthat100ms-MO1at100ms'
+	schedule = 'np-edf' # 'np-rm'
+	lasso1 = 0
+	lasso2 = 8*100
+	horizon = lasso2 # 
 	
-	## set up the control specifications
-	# F1Tenth @200ms
-	A0 = [[1.0, 1.3, 5.11811024], [0.0, 1.0, 3.93700787], [0.0, 0.0, 0.0]] # A matrix is a list of lists
-	B0 = [0.0, 0.0, 1.0] # B matrix is a list
-	K0 = [0.12847214, 0.41262919, 1.62452438] # control gains matrix is a list
-	R0 = [0.0] # preferably set the R values to 0 for all control systems
-	# ~ initstate0 = [[0.5, 1.0],[0.5, 1.0],[0.0,0.0]] # [min,max] range for each dimension 
-	initstate0 = [[-1.0, 1.0],[-2.0, 1.0],[0.0,0.0]] # [min,max] range for each dimension 
-	# ~ initstate0 = [[-1.0, 1.0], [-2.0, 1.1], [0.0, 0.0]] # [min,max] values for each dimension. NOTE: last dimension min,max should be set to 0 as it is the augmented dimension
-	maxdev0 = 4.0 # maximum deviation from reference, for all dimensions 
-	c0x0 = [1, 2.3, 0.8305837346450505, 0.23594052355478845, 0.061172194211656004, 0.015180227978747886, 0.0036805002650110996, 0.0008808360352138991, 0.00020923847402964628, 4.948738822135045e-05, 1.167430773579879e-05, 2.749830260052804e-06, 6.471232026822143e-07, 1.522065893295259e-07, 3.57882090211035e-08, 8.413232807668398e-09, 1.9775885236918084e-09, 4.648139337338285e-10, 1.0924574354352305e-10, 2.5675520900137504e-11, 6.034310289186524e-12, 1.4181827880558376e-12, 3.3329938279855713e-13, 7.833132094552705e-14, 1.8409228125137012e-14, 4.326485210172843e-15, 1.0167977521369781e-15, 2.3896470367468088e-16, 5.616074176403078e-17, 1.3198721055628498e-17, 3.101921683954092e-18] # this is the ideal or nominal trajectory (obtained without any deadline misses), ONLY FOR 0th DIMENSION
-	c0x0 = [0]*len(c0x0) # enable this for safety BOX instead of safety PIPE
-
-	# RC network@100ms
-	A1 = [[0.54947186, 0.07239801, 0.28308422], [0.0144796, 0.93318132, 0.0069334], [0.0, 0.0, 0.0]]
-	B1 = [0.0, 0.0, 1.0]
-	K1 = [0.05886312, 0.07868521, 0.03028579]
-	initstate1 = [[0.0, 1.0],[0.0, 1.0],[0.0,0.0]] # [min,max] range for each dimension 
-	# ~ maxdev1 = 2.0 #
-	maxdev1 = 1.5 #
-	c1x0 = [1, 0.6218698685461647, 0.371370995861039, 0.23837338218376325, 0.166456954120747, 0.12638059024177287, 0.10298354645028139, 0.08839996544765089, 0.07854374545227186, 0.07128755077762707, 0.06551943903683383, 0.06065412168722863, 0.05637974045196319, 0.05252665040595633, 0.04899940857367611, 0.0457415072138286, 0.042717072064984575, 0.039901351059363065, 0.03727575874679051, 0.03482528257363583, 0.03253711441524954, 0.030399918455690376, 0.028403430237614394, 0.02653822869189336, 0.024795599106345746, 0.02316744444685374, 0.021646222888102203, 0.020224900007084788, 0.018896909586510163, 0.01765611982596122, 0.016496803239786077] # ideal trajectory for 0th dim
-
-	# DC motor @100ms
-	A2 = [[0.36783052, 0.05635456, 0.01054672], [-0.00112709, 0.81866696, 0.16427936], [ 0.0, 0.0, 0.0]]
-	B2 = [0.0, 0.0, 1.0]
-	K2 = [0.00080453, 0.15106493, 0.03031163]
-	# ~ initstate2 = [[0.0, 1.0],[0.0, 1.0],[0.0,0.0]] # [min,max] range for each dimension 
-	initstate2 = [[-0.1, 1.0],[-0.1, 1.0],[0.0,0.0]] # [min,max] range for each dimension 
-	maxdev2 = 1.0 #
-	# ~ maxdev2 = 0.6 #
-	c2x0 = [1, 0.42418507604914224, 0.20049858884069355, 0.10877668442515992, 0.06761047128217773, 0.04661906317507053, 0.034289554738047116, 0.02612301168962445, 0.020257204137833645, 0.015843986028476423, 0.012442891743489266, 0.009790670061073137, 0.0077107128410593756, 0.006075185549651465, 0.004787513758840264, 0.003773118510553083, 0.00297378455190727, 0.0023438362212448377, 0.0018473495824671666, 0.001456038337079545, 0.0011476181796241406, 0.0009045288900827828, 0.0007129312618675035, 0.0005619180274784946, 0.0004428924878364241, 0.000349078967164459, 0.0002751370394380879, 0.00021685749741059482, 0.00017092273179925103, 0.00013471787075577965, 0.00010618192517845292]
+	# electronic wedge @100ms
+	A_EW_100ms = [[4.76632412e+03, 5.20200332e+01, 2.38889166e+03], [4.36713381e+05, 4.76632412e+03, 2.18881674e+05], [0.00000000e+00, 0.00000000e+00, 0.00000000e+00]]
+	B_EW_100ms = [0.0, 0.0, 1.0]
+	K_EW_100ms = [19019.56874646,  207.58106156,  9532.64802249]
+	# ~ initstate_EW_100ms = [[-0.1, 0.3],[-0.1, 0.3],[0.0,0.0]]
+	initstate_EW_100ms = [[-0.001, 0.003],[-0.001, 0.003],[0.0,0.0]]
+	idealtrace_EW_100ms = [0.0]*25
+	# ~ idealtrace_EW_100ms = [0.3, 1445.503244806565, 0.30323827234073897, 1445.1605425262737, 0.3031663789873059, 4.374427235990651e-05, 7.632924224033572e-09, 2.9017709150776276e-05, 6.087347107931215e-09, 1.1632046857126206e-12, 2.118312038992944e-16, 4.231024770811887e-20, 7.538230465340433e-24, 1.3975850013195955e-27, 2.7287144642454724e-31, 6.436179964467408e-35, 1.4215107573567208e-38, 2.8761009434899674e-42, 6.242561750765543e-46, 1.0695314717768387e-49, 2.21704226593464e-53] 
+	# ~ maxdev_EW_100ms = 2500.0
+	maxdev_EW_100ms = 150.0
+	# ~ maxdev_EW_100ms = 1000.0
 	
-	# final control spec, concatenate the respective matrices
-	A = [A0,A1,A2]
-	B = [B0,B1,B2]
-	K = [K0,K1,K2]
+	# F1_tenth at 100ms
+	A_F1 = [[1.0, 0.65, 1.27952756], [0.0, 1.0, 1.96850394], [0.0, 0.0, 0.0 ]]
+	B_F1 = [0.0, 0.0, 1.0]
+	K_F1 = [0.27877602, 0.61024489, 1.20126946]
+	R_F1 = [0.0]
+	# ~ initstate_F1 = [[-0.1, 1.0],[-0.1, 1.0],[0.0, 0.0]] 
+	# ~ initstate_F1 = [[-0.2, 1.0],[-0.5, 1.0],[0.0, 0.0]] 
+	# ~ initstate_F1 = [[-1.2, 1.5],[-1.5, 1.5],[0.0,0.0]] 
+	initstate_F1 = [[-1.2, 1.5],[-1.4, 1.5],[0.0,0.0]] 
+	idealtrace_F1 = [1, 1.65, 1.1624732474917685, 0.6720398509969542, 0.35609304692049076, 0.17996579858028336, 0.0883958747152729, 0.04263201532545701, 0.020311932541761103, 0.009597375422218387, 0.004508589687044764, 0.0021094076638128135, 0.0009840685736665746, 0.00045813587345283955, 0.0002129712281341618, 9.88975842955441e-05, 4.5889946913271684e-05, 2.128183879540338e-05, 9.86568188654299e-06, 4.572139648805213e-06, 2.118463510968419e-06, 9.81424048768234e-07, 4.546160409527974e-07, 2.105708745925376e-07, 9.752744371859402e-08, 4.516866588140482e-08, 2.0918693491071307e-08, 9.687736896737093e-09, 4.486454003232629e-09, 2.0776821397914353e-09, 9.621690255066606e-10]
+	idealtrace_F1 = [0.0]*len(idealtrace_F1)
+	maxdev_F1 = 5.0
+	
+	#Motivating Example 1 at 100ms
+	A_MO1 = [[ 1.63919059, -0.24738655,  0.32905183], [ 0.08658529,  0.89703093,  0.03600497], [ 0.0,          0.0,          0.0        ]]
+	B_MO1 = [0.0, 0.0, 1.0]
+	K_MO1 = [ 5.11965541, -1.71671214,  1.00840319]
+	R_MO1 = [0.0]
+	# ~ initstate_MO1 = [[0.0, 0.4],[0.0, 0.4], [0.0, 0.0]]
+	initstate_MO1 = [[-1.7, 1.0],[-1.0, 1.0], [0.0, 0.0]]
+	# ~ initstate_MO1 = [[-1.2, 1.5],[-0.5, 1.1], [0.0, 0.0]]
+	idealtrace_MO1 = [1, 1.3918040352323198, 0.9183539445308548, 0.6276863863702387, 0.44736418719459103, 0.33379919310956613, 0.26075228772520986, 0.21241837900933233, 0.1792683007276054, 0.1555484343902771, 0.13777711504524506, 0.12384040467526217, 0.11244826953928229, 0.10280747400499052, 0.09442479222063446, 0.08698858627660498, 0.0802975124126271, 0.07421757135586701, 0.06865620771247255, 0.0635466663422061, 0.05883852129689806, 0.05449192102024613, 0.05047407250656867, 0.046757075805964145, 0.043316574261155885, 0.04013089873912325, 0.037180512142599674, 0.0344476374839223, 0.03191599911910082, 0.029570634605239947, 0.02739775141462859]
+	idealtrace_MO1 = [0.0]*len(idealtrace_MO1)
+	maxdev_MO1 = 4.5
+
+	A = [A_EW_100ms,A_F1,A_MO1]
+	B = [B_EW_100ms,B_F1,B_MO1]
+	K = [K_EW_100ms,K_F1,K_MO1]
 	R = [[0.0],[0.0],[0.0]]
-	initstate=[initstate0,initstate1,initstate2]
-	idealtrace = [c0x0,c1x0,c2x0] # ideal trace always wrt dimension 0! 
-	maxdev = [maxdev0,maxdev1,maxdev2] 
+	initstate=[initstate_EW_100ms,initstate_F1,initstate_MO1]
+	idealtrace = [idealtrace_EW_100ms,idealtrace_F1,idealtrace_MO1] # ideal trace always wrt dimension 0
+	maxdev = [maxdev_EW_100ms,maxdev_F1,maxdev_MO1] 
 	
 	upperbound, lowerbound = [],[] # safety bounds
-	for cid in range(len(A)): # compute safety bounds wrt ideal trace
+	for cid in range(len(A)): 
 		upperbound.append([ii+maxdev[cid] for ii in idealtrace[cid]])
 		lowerbound.append([ii-maxdev[cid] for ii in idealtrace[cid]])
 				
-	strategy = 'zero-and-kill' # use this for now
-	# ~ strategy = 'hold-and-kill' 
+	strategy = 'zero-and-kill' 
+	# ~ strategy = 'hold-and-kill'
 	
 	# basic sanity checking of specs
 	assert len(A)==len(B)==len(K)==len(R)==len(initstate), 'bug'
@@ -155,7 +160,7 @@ def systemspec():
 
 def controlsafetyproperty(whichmode):
 	safetyconstraints = []
-	my_resolution = 0
+	my_resolution = 0.0001
 	for cid in range(len(A)): # for each controller
 		for dimm in range(len(A[cid])-1): # for each dimension except the last one, which is u
 			for jid in range(1,len(x[cid][0])):
@@ -175,7 +180,7 @@ def controlsafetyproperty(whichmode):
 	smtsolver.add(safetyconstraints)
 	
 def guessdropset(dhat): # dhat = [[c1,c2],[c3,c4,c5]] : And(Or(And(c1),And(c2)),Or(And(c3)...))
-	logging.info('running GuessDropSet...') # dhat= '+str(dhat))
+	logging.info('running GuessDropSet...') #dhat= '+str(dhat))
 	smtsolver.push() # prepare for a guess call to Z3
 	controlsafetyproperty('guess') # insert safety constraints
 	if len(dhat)>1: smtsolver.add(And([d1 for d1 in dhat]))
@@ -192,7 +197,7 @@ def guessdropset(dhat): # dhat = [[c1,c2],[c3,c4,c5]] : And(Or(And(c1),And(c2)),
 	tr=getsortedtrace(witness)
 	dset = [d[t1][j1] for (t1,j1,r1,s1,e1,d1,chain1,hit1,drop1) in tr if (drop1)]  # pick only drops
 	undropset = [d[t1][j1] for (t1,j1,r1,s1,e1,d1,chain1,hit1,drop1) in tr if not drop1]  # pick non-drops
-	#logging.info('GuessDropSet returned dropset = '+str(dset))
+	logging.info('GuessDropSet returned dropset = '+str(dset))
 	smtsolver.pop() # restore context
 	return (dset,undropset) # 2 choices for drops set: drop+hit OR only drop
 
@@ -233,20 +238,21 @@ def workconservation(): # work conservation constraints
 
 
 def flipper(cid,hm,ctrdev,cemodell): # returns list of must jobs
-	#logging.info('starting Flipper...')
+	logging.info('starting Flipper...')
 	assert ((False,False) in hm) or (True in [i[1] for i in hm]), 'nothing to flip! for controller '+str(cid) # there should be atleast 1 miss or drop for flipping
 	mustj = [] # must/critical jobs
 	#logging.info('hit/miss and drop sequence: '+str(hm))
 	propviolation = ctrdev.index(True) # get the 1st instance of safety violation
 	# ~ propviolation = len(ctrdev)-list(reversed(ctrdev)).index(True)-1 # get the last instance
 	#logging.info('property violation index = '+str(propviolation))
+	logging.info('earliest control safety violation at step = '+str(propviolation))
 	
 	allmisses = [i for (i,(hitt,dropp)) in enumerate(hm[:propviolation+1]) if ((not hitt) or dropp)] # pick all miss locations
 	assert allmisses, 'unexpected! no miss/drop detected before property violation location '+str(propviolation)+' for control system '+str(cid)
 	#logging.info('indices of all deadline misses = '+str(allmisses))
 	
 	for klen in range(1,len(allmisses)+1): 
-		#logging.info('flipping all '+str(klen)+'-len misses to hits and simulating...')
+		logging.info('flipping all '+str(klen)+'-len misses to hits and simulating...')
 		klenlist = list(combinations(allmisses,klen))  # get all k-len subsequences
 		for klentuple in klenlist: # for each k-len subseq
 			#logging.info('klentuple = '+str(klentuple))
@@ -305,7 +311,7 @@ def flipper(cid,hm,ctrdev,cemodell): # returns list of must jobs
 					mustj.append((cid,eachmiss)) #(hm[loc][0],hm[loc][1])) # pick each job from the critical subsequence 
 
 		if mustj: 
-			#logging.info('at k-len = '+str(klen)+', mustj = '+str(mustj))
+			logging.info('at k-len = '+str(klen)+', mustj = '+str(mustj))
 			return mustj # we got must jobs at this k-level 
 	
 	assert False, 'empty mustj! for controller '+str(cid)+' after trying all k-len flips, exiting...' 
@@ -356,7 +362,7 @@ def closure(mustjobs,cemodel):
 			if foundoverlap: break # iterate all over again from while
 		if not foundoverlap: 
 			dropcandidates = mayset.difference(maysetcopy)
-			#logging.info('dropcandidates = '+str([(i[0],i[1]) for i in dropcandidates]))
+			logging.info('dropcandidates = '+str([(i[0],i[1]) for i in dropcandidates]))
 			
 			tmp1,tmp2 = list(dropcandidates), list(Mminus)
 			tmp3 = [d[i[0]][i[1]] for i in tmp1] + [Not(d[i[0]][i[1]]) for i in tmp2]
@@ -369,7 +375,7 @@ def closure(mustjobs,cemodel):
 logging.basicConfig(format='%(asctime)s %(levelname)-5s: %(message)s',level='INFO',datefmt='%H:%M:%S')
 logging.info('starting PATCHER: scheduler patch synthesis tool, ver 0.1')
 systemspec() # load the system
-logging.info('found '+str(len(period))+' tasks, '+str(sum(jobs))+' jobs')
+logging.info('Taskset: '+tasksetname+', found '+str(len(period))+' tasks, '+str(sum(jobs))+' jobs')
 smtsolver=Solver() # instantiate the solver
 set_option(rational_to_decimal=True)
 ## change the solver precision as required
