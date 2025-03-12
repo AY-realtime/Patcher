@@ -4,7 +4,7 @@ Synthesizing scheduler patch for repairing control safety violations
 This is part of Repeatability Evaluation Package for ICCPS-2025, for the paper titled "Repairing Control Safety Violations via Scheduler Patch Synthesis". 
 
 # LICENSE
-TBD
+MIT License
 
 # DESCRIPTION
 PATCHER ("patcher-n.py") is a Python3 script that analyzes a control specification, task specification along with safety property. PATCHER checks if the given control systems meet safety specification, when implemented as a set of tasks that are scheduled on a unicore processor under NP-EDF scheduling policy. On discovering a safety violation, PATCHER tries to synthesize a drop set i.e. jobs that are *not* to be scheduled at runtime, such that control safety is achieved. Sample case studies are provided in the scripts "patcher-n.py". The task, control and safety specs are provided in the function systemspec(). See the comments in the script and edit the lines as required. 
